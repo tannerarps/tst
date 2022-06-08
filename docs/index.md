@@ -1,37 +1,147 @@
-## Welcome to GitHub Pages
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+  <title>TST (Typing Speed Test)</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
 
-You can use the [editor on GitHub](https://github.com/tannerarps/tst/edit/main/docs/index.md) to maintain and preview the content for your website in Markdown files.
+  <div class="container">
+    <div id="timer"></div>
+    <div id="cnt"></div>
+  </div>
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+  <div class="typingContainer">
+    <p id="target"></p>
+    <p id="targetja"></p>
+    <p id="result"></p>
+    <p id="restart"></p>
+  </div>
 
-### Markdown
+  <footer>
+        <p>made by</p>
+    <p>Elliot | Isack | Tanner</p>
+  </footer>
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+  <script type="module">
+    import { CSV } from "https://code4sabae.github.io/js/CSV.js";
+    import { say } from "https://taisukef.github.io/say.js/say.js";
 
-```markdown
-Syntax highlighted code block
+    window.onload = async () => {
+      const words = CSV.toJSON(await CSV.fetch("https://taisukef.github.io/globish/globishwords.csv"));
+      const wcnt = Math.min(words.length, document.location.hash.substring(1) || 20);
 
-# Header 1
-## Header 2
-### Header 3
+      for (;;) {
+        target.textContent = "Click to Start!"
+        cnt.textContent = `0/${wcnt}`;
+        const t = new Timer(timer);
+        await waitClickOrEnter(target);
+        shuffle(words);
+        t.start();
+        let escflg = false;
+        A: for (let i = 0; i < wcnt; i++) {
+          const w = words[i];
+          const word = w.en;
+          say(word, "en-US");
+          target.textContent = word;
+          for (let j = 0; j < word.length; j++) {
+            for (;;) {
+              const c = await waitKeyDown();
+              if (c == word[j]) {
+                break;
+              }
+              if (c == "Escape") {
+                escflg = true;
+                break A;
+              }
+            }
+            target.textContent = '_'.repeat(j + 1) + word.substring(j + 1);
+          }
+          targetja.textContent = "";
+          cnt.textContent = `${i + 1}/${wcnt}`;
+        }
+        t.stop();
+        result.textContent = escflg ? "" : "Congratulations!!";
+        restart.textContent = "Try Again";
+        await waitClickOrEnter(restart);
+        result.textContent = restart.textContent = target.textContent = targetja.textContent = "";
+      }
+    };
 
-- Bulleted
-- List
+    // util
+    const waitClick = (comp) => {
+      return new Promise((resolve) => {
+        comp.classList.add("cursor");
+        comp.onclick = () => {
+          comp.onclick = null;
+          comp.classList.remove("cursor");
+          resolve();
+        }
+      })
+    };
+    const waitClickOrEnter = (comp) => {
+      return new Promise((resolve) => {
+        comp.classList.add("cursor");
+        document.onkeydown = (e) => {
+          if (e.key == "Enter") {
+            document.onkeydown = null;
+            resolve();
+          }
+        };
+        comp.onclick = () => {
+          comp.onclick = null;
+          comp.classList.remove("cursor");
+          resolve();
+        }
+      })
+    };
+    const waitKeyDown = () => {
+      return new Promise(resolve => {
+          document.onkeydown = (e) => {
+              document.onkeydown = null;
+              resolve(e.key);
+          }
+      });
+    };
+    const rnd = (n) => {
+      return Math.floor(Math.random() * n);
+    };
+    const shuffle = (array) => {
+      const len = array.length;
+      for (let i = 0; i < len; i++) {
+        const n = rnd(len);
+        const tmp = array[i];
+        array[i] = array[n];
+        array[n] = tmp;
+      }
+    };
 
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [Basic writing and formatting syntax](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/tannerarps/tst/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+    class Timer {
+      constructor(div) {
+        this.div = div;
+        this.div.textContent = "00:00:000";
+      }
+      start() {
+        if (this.tid) {
+          this.stop();
+        }
+        this.tid = null;
+        this.startTime = new Date().getTime();
+        this.show();
+        this.tid = setInterval(() => {
+          this.show();
+        }, 10);
+      }
+      show() {
+        const d = new Date(Date.now() - this.startTime);
+        const m = d.getMinutes().toString().padStart(2, '0');
+        const s = d.getSeconds().toString().padStart(2, '0');
+        const ms = d.getMilliseconds().toString().padStart(3, '0');
+        this.div.textContent = `${m}:${s}:${ms}`;
+      }
+      stop() {
+        clearInterval(this.tid);
+        this.tid = null;
+      }
+    }
+  </script>
+</body>
+</html>
